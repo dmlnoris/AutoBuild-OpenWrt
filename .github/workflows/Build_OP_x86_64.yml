@@ -61,7 +61,7 @@ jobs:
         echo "src-git ssrp https://github.com/fw876/helloworld.git" >> ./feeds.conf.default
         
     - name: Update & Install feeds
-      working-directory: ./openwrt
+      working-directory: /openwrt
       run: |
         ./scripts/feeds update -a
         ./scripts/feeds install -a
@@ -82,19 +82,19 @@ jobs:
       env:
         CONFIG_FILE: 'x86_64.config'
       run: |
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
+        [ -e $CONFIG_FILE ] && mv /home/runner/work/AutoBuild-OpenWrt/AutoBuild-OpenWrt/$CONFIG_FILE /openwrt/.config
         chmod +x ./customize.sh && ./customize.sh
-        cd openwrt && make defconfig
+        cd /openwrt && make defconfig
         
     - name: Download package
-      working-directory: ./openwrt
+      working-directory: /openwrt
       run: |
         make download -j$(nproc)
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
     - name: Build firmware
-      working-directory: ./openwrt
+      working-directory: /openwrt
       run: |
         echo -e "$(nproc) thread build."
         make -j$(nproc) V=s
@@ -103,4 +103,4 @@ jobs:
       uses: actions/upload-artifact@master
       with:
         name: OpenWrt
-        path: openwrt/bin
+        path: /openwrt/bin
