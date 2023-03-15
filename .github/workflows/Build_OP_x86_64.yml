@@ -17,6 +17,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Maximize build space
+      uses: easimon/maximize-build-space@master
+      with:
+        root-reserve-mb: 512
+        swap-size-mb: 1024
+        remove-dotnet: 'true'
+
     - name: Checkout
       uses: actions/checkout@master
 
@@ -54,14 +61,12 @@ jobs:
         REPO_URL: https://github.com/coolsnowwolf/lede
         REPO_BRANCH: master
       run: |
-        sudo mkdir /openwrt
-        sudo chmod 777 /openwrt
-        git clone --depth 1 $REPO_URL -b $REPO_BRANCH /openwrt
-        cd /openwrt
+        git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
+        cd ./openwrt
         echo "src-git ssrp https://github.com/fw876/helloworld.git" >> ./feeds.conf.default
         
     - name: Update & Install feeds
-      working-directory: /openwrt
+      working-directory: ./openwrt
       run: |
         ./scripts/feeds update -a
         ./scripts/feeds install -a
@@ -82,25 +87,26 @@ jobs:
       env:
         CONFIG_FILE: 'x86_64.config'
       run: |
-        [ -e $CONFIG_FILE ] && mv /home/runner/work/AutoBuild-OpenWrt/AutoBuild-OpenWrt/$CONFIG_FILE /openwrt/.config
+        [ -e $CONFIG_FILE ] && mv /home/runner/work/AutoBuild-OpenWrt/AutoBuild-OpenWrt/$CONFIG_FILE ./openwrt/.config
         chmod +x ./customize.sh && ./customize.sh
-        cd /openwrt && make defconfig
+        cd ./openwrt && make defconfig
         
     - name: Download package
-      working-directory: /openwrt
+      working-directory: ./openwrt
       run: |
         make download -j$(nproc)
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
     - name: Build firmware
-      working-directory: /openwrt
+      working-directory: ./openwrt
       run: |
         echo -e "$(nproc) thread build."
-        make -j$(nproc) V=s
+        make -j $(($(nproc)+1))
+      # make -j$(nproc) V=s
 
     - name : Upload artifact
       uses: actions/upload-artifact@master
       with:
         name: OpenWrt
-        path: /openwrt/bin
+        path: ./openwrt/bin
